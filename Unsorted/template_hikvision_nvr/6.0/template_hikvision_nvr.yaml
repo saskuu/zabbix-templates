@@ -1,6 +1,6 @@
 zabbix_export:
   version: '6.0'
-  date: '2021-11-21T21:53:28Z'
+  date: '2022-07-04T09:55:59Z'
   groups:
     -
       uuid: 7df96b18c230490a9a0a9e2307226338
@@ -41,8 +41,6 @@ zabbix_export:
         ## Author
         
         Omar Bayramov, David Sitnikov
-        
-        
       groups:
         -
           name: Templates
@@ -108,12 +106,33 @@ zabbix_export:
             -
               tag: Application
               value: General
+          triggers:
+            -
+              uuid: a106b70f2b6e4fea8b92db4ea0413874
+              expression: last(/Hikvision/sysUpTime)<10m
+              name: '{HOST.NAME} has been restarted (uptime < 10m)'
+              priority: HIGH
+              description: 'Uptime is less than 10 minutes'
+        -
+          uuid: 6845d4bf40ca4a258af099b393915fe3
+          name: 'SNMP agent availability'
+          type: INTERNAL
+          key: 'zabbix[host,snmp,available]'
+          history: 7d
+          triggers:
+            -
+              uuid: ee803c713c3944f19fb095036cb68ca4
+              expression: 'max(/Hikvision/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0'
+              name: 'No SNMP data collection'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: AVERAGE
+              description: 'SNMP is not available for polling. Please check device connectivity and SNMP settings.'
       discovery_rules:
         -
           uuid: d8723268100044d798a47e70c424efb6
           name: DIskVolume
           type: SNMP_AGENT
-          snmp_oid: 'discovery[{#HIKDINDEX}, HIKVISION-MIB::hikDiskIndex,{#HIKVOLUME}, HIKVISION-MIB::hikDiskVolume, {#HIKDISKSTATUS}, HIKVISION-MIB::hikDiskStatus, {#HIKDISKFS},HIKVISION-MIB::hikDiskFreeSpace, {#HIKDISKCAP}, HIKVISION-MIB::hikDiskCapability]'
+          snmp_oid: 'discovery[{#HIKDINDEX}, 1.3.6.1.4.1.50001.1.241.1.1,{#HIKVOLUME},  1.3.6.1.4.1.50001.1.241.1.2, {#HIKDISKSTATUS}, 1.3.6.1.4.1.50001.1.241.1.3, {#HIKDISKFS},1.3.6.1.4.1.50001.1.241.1.4, {#HIKDISKCAP}, 1.3.6.1.4.1.50001.1.241.1.5]'
           key: hikDiskVolume
           delay: 30s
           item_prototypes:
@@ -121,10 +140,16 @@ zabbix_export:
               uuid: 0f6d8fe22fb94b3daa1f7fab38435d83
               name: 'HDD capability on {#HIKDINDEX}'
               type: SNMP_AGENT
-              snmp_oid: 'HIKVISION-MIB::hikDiskCapability.{#HIKDINDEX}.0'
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.5.{#HIKDINDEX}.0'
               key: 'hikDiskCapability[{#HIKDINDEX}]'
               delay: 12h
               history: 30d
+              units: b
+              preprocessing:
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '1000000'
               tags:
                 -
                   tag: Application
@@ -133,12 +158,18 @@ zabbix_export:
               uuid: bdea8699456b4990a942a5f88a47e2f4
               name: 'HDD free space on {#HIKDINDEX}'
               type: SNMP_AGENT
-              snmp_oid: 'HIKVISION-MIB::hikDiskFreeSpace.{#HIKDINDEX}.0'
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.4.{#HIKDINDEX}.0'
               key: 'hikDiskFreeSpace[{#HIKDINDEX}]'
-              delay: 3h
+              delay: 10m
               history: 30d
+              units: b
               valuemap:
                 name: 'Hikvision HDD state mapping'
+              preprocessing:
+                -
+                  type: MULTIPLIER
+                  parameters:
+                    - '1000000'
               tags:
                 -
                   tag: Application
@@ -147,9 +178,9 @@ zabbix_export:
               uuid: a3871c0ca1794c0e884502a0233444ad
               name: 'HDD Status on {#HIKDINDEX}'
               type: SNMP_AGENT
-              snmp_oid: 'HIKVISION-MIB::hikDiskStatus.{#HIKDINDEX}.0'
+              snmp_oid: '1.3.6.1.4.1.50001.1.241.1.3.{#HIKDINDEX}.0'
               key: 'hikDiskStatus[{#HIKDINDEX}]'
-              delay: 30m
+              delay: 1h
               history: 30d
               valuemap:
                 name: 'Hikvision HDD state mapping'
